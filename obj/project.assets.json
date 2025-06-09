@@ -326,24 +326,19 @@
     ]
   },
   "packageFolders": {
-    "C:\\Users\\dipra\\.nuget\\packages\\": {},
-    "C:\\Program Files (x86)\\Microsoft Visual Studio\\Shared\\NuGetPackages": {}
+    "/home/hachi/.nuget/packages/": {}
   },
   "project": {
     "version": "1.0.0",
     "restore": {
-      "projectUniqueName": "C:\\Users\\dipra\\SysMonitor\\SysMonitor.csproj",
+      "projectUniqueName": "/home/hachi/Documents/SysMonitor/SysMonitor.csproj",
       "projectName": "SysMonitor",
-      "projectPath": "C:\\Users\\dipra\\SysMonitor\\SysMonitor.csproj",
-      "packagesPath": "C:\\Users\\dipra\\.nuget\\packages\\",
-      "outputPath": "C:\\Users\\dipra\\SysMonitor\\obj\\",
+      "projectPath": "/home/hachi/Documents/SysMonitor/SysMonitor.csproj",
+      "packagesPath": "/home/hachi/.nuget/packages/",
+      "outputPath": "/home/hachi/Documents/SysMonitor/obj/",
       "projectStyle": "PackageReference",
-      "fallbackFolders": [
-        "C:\\Program Files (x86)\\Microsoft Visual Studio\\Shared\\NuGetPackages"
-      ],
       "configFilePaths": [
-        "C:\\Users\\dipra\\AppData\\Roaming\\NuGet\\NuGet.Config",
-        "C:\\Program Files (x86)\\NuGet\\Config\\Microsoft.VisualStudio.FallbackLocation.config"
+        "/home/hachi/.nuget/NuGet/NuGet.Config"
       ],
       "originalTargetFrameworks": [
         "net9.0"
@@ -367,7 +362,7 @@
         "auditLevel": "low",
         "auditMode": "direct"
       },
-      "SdkAnalysisLevel": "9.0.300"
+      "SdkAnalysisLevel": "9.0.100"
     },
     "frameworks": {
       "net9.0": {
@@ -393,12 +388,18 @@
         ],
         "assetTargetFallback": true,
         "warn": true,
+        "downloadDependencies": [
+          {
+            "name": "Microsoft.AspNetCore.App.Ref",
+            "version": "[9.0.4, 9.0.4]"
+          }
+        ],
         "frameworkReferences": {
           "Microsoft.NETCore.App": {
             "privateAssets": "all"
           }
         },
-        "runtimeIdentifierGraphPath": "C:\\Program Files\\dotnet\\sdk\\9.0.300/PortableRuntimeIdentifierGraph.json"
+        "runtimeIdentifierGraphPath": "/usr/share/dotnet/sdk/9.0.105/PortableRuntimeIdentifierGraph.json"
       }
     }
   }
