@@ -1,20 +1,24 @@
 {
   "format": 1,
   "restore": {
-    "/home/hachi/Documents/SysMonitor/SysMonitor.csproj": {}
+    "C:\\Users\\dipra\\SysMonitor\\SysMonitor.csproj": {}
   },
   "projects": {
-    "/home/hachi/Documents/SysMonitor/SysMonitor.csproj": {
+    "C:\\Users\\dipra\\SysMonitor\\SysMonitor.csproj": {
       "version": "1.0.0",
       "restore": {
-        "projectUniqueName": "/home/hachi/Documents/SysMonitor/SysMonitor.csproj",
+        "projectUniqueName": "C:\\Users\\dipra\\SysMonitor\\SysMonitor.csproj",
         "projectName": "SysMonitor",
-        "projectPath": "/home/hachi/Documents/SysMonitor/SysMonitor.csproj",
-        "packagesPath": "/home/hachi/.nuget/packages/",
-        "outputPath": "/home/hachi/Documents/SysMonitor/obj/",
+        "projectPath": "C:\\Users\\dipra\\SysMonitor\\SysMonitor.csproj",
+        "packagesPath": "C:\\Users\\dipra\\.nuget\\packages\\",
+        "outputPath": "C:\\Users\\dipra\\SysMonitor\\obj\\",
         "projectStyle": "PackageReference",
+        "fallbackFolders": [
+          "C:\\Program Files (x86)\\Microsoft Visual Studio\\Shared\\NuGetPackages"
+        ],
         "configFilePaths": [
-          "/home/hachi/.nuget/NuGet/NuGet.Config"
+          "C:\\Users\\dipra\\AppData\\Roaming\\NuGet\\NuGet.Config",
+          "C:\\Program Files (x86)\\NuGet\\Config\\Microsoft.VisualStudio.FallbackLocation.config"
         ],
         "originalTargetFrameworks": [
           "net9.0"
@@ -38,7 +42,7 @@
           "auditLevel": "low",
           "auditMode": "direct"
         },
-        "SdkAnalysisLevel": "9.0.100"
+        "SdkAnalysisLevel": "9.0.300"
       },
       "frameworks": {
         "net9.0": {
@@ -64,18 +68,12 @@
           ],
           "assetTargetFallback": true,
           "warn": true,
-          "downloadDependencies": [
-            {
-              "name": "Microsoft.AspNetCore.App.Ref",
-              "version": "[9.0.4, 9.0.4]"
-            }
-          ],
           "frameworkReferences": {
             "Microsoft.NETCore.App": {
               "privateAssets": "all"
             }
           },
-          "runtimeIdentifierGraphPath": "/usr/share/dotnet/sdk/9.0.105/PortableRuntimeIdentifierGraph.json"
+          "runtimeIdentifierGraphPath": "C:\\Program Files\\dotnet\\sdk\\9.0.300/PortableRuntimeIdentifierGraph.json"
         }
       }
     }

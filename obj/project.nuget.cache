@@ -1,16 +1,15 @@
 {
   "version": 2,
-  "dgSpecHash": "a+LlVup6ZbU=",
+  "dgSpecHash": "bCHT9OCp9yk=",
   "success": true,
-  "projectFilePath": "/home/hachi/Documents/SysMonitor/SysMonitor.csproj",
+  "projectFilePath": "C:\\Users\\dipra\\SysMonitor\\SysMonitor.csproj",
   "expectedPackageFiles": [
-    "/home/hachi/.nuget/packages/system.codedom/9.0.5/system.codedom.9.0.5.nupkg.sha512",
-    "/home/hachi/.nuget/packages/system.configuration.configurationmanager/9.0.5/system.configuration.configurationmanager.9.0.5.nupkg.sha512",
-    "/home/hachi/.nuget/packages/system.diagnostics.eventlog/9.0.5/system.diagnostics.eventlog.9.0.5.nupkg.sha512",
-    "/home/hachi/.nuget/packages/system.diagnostics.performancecounter/9.0.5/system.diagnostics.performancecounter.9.0.5.nupkg.sha512",
-    "/home/hachi/.nuget/packages/system.management/9.0.5/system.management.9.0.5.nupkg.sha512",
-    "/home/hachi/.nuget/packages/system.security.cryptography.protecteddata/9.0.5/system.security.cryptography.protecteddata.9.0.5.nupkg.sha512",
-    "/home/hachi/.nuget/packages/microsoft.aspnetcore.app.ref/9.0.4/microsoft.aspnetcore.app.ref.9.0.4.nupkg.sha512"
+    "C:\\Users\\dipra\\.nuget\\packages\\system.codedom\\9.0.5\\system.codedom.9.0.5.nupkg.sha512",
+    "C:\\Users\\dipra\\.nuget\\packages\\system.configuration.configurationmanager\\9.0.5\\system.configuration.configurationmanager.9.0.5.nupkg.sha512",
+    "C:\\Users\\dipra\\.nuget\\packages\\system.diagnostics.eventlog\\9.0.5\\system.diagnostics.eventlog.9.0.5.nupkg.sha512",
+    "C:\\Users\\dipra\\.nuget\\packages\\system.diagnostics.performancecounter\\9.0.5\\system.diagnostics.performancecounter.9.0.5.nupkg.sha512",
+    "C:\\Users\\dipra\\.nuget\\packages\\system.management\\9.0.5\\system.management.9.0.5.nupkg.sha512",
+    "C:\\Users\\dipra\\.nuget\\packages\\system.security.cryptography.protecteddata\\9.0.5\\system.security.cryptography.protecteddata.9.0.5.nupkg.sha512"
   ],
   "logs": []
 }
