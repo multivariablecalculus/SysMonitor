@@ -24,7 +24,7 @@ class Program
     static string? winNetInterface;
     static string? winGpuInstance;
 
-    // --- Linux/Unix state for CPU/network
+    //Linux/Unix state for CPU/network
     static ulong[]? lastCpuTimes;
     static DateTime lastCpuSample = DateTime.MinValue;
     static long lastNetSent = -1, lastNetRecv = -1;
@@ -37,7 +37,7 @@ class Program
 
         if (OperatingSystem.IsWindows())
         {
-#pragma warning disable CA1416 // Validate platform compatibility
+#pragma warning disable CA1416
             cpuCounter = new PerformanceCounter("Processor", "% Processor Time", "_Total");
             winNetInterface = GetActiveNetworkInterfaceName();
             if (winNetInterface != null)
@@ -50,10 +50,9 @@ class Program
             {
                 gpuUsageCounter = new PerformanceCounter("GPU Engine", "Utilization Percentage", winGpuInstance);
             }
-#pragma warning restore CA1416 // Validate platform compatibility
+#pragma warning restore CA1416
         }
 
-        // Prime CPU sample for non-Windows
         if (!OperatingSystem.IsWindows())
             GetCPUUsage();
 
@@ -121,15 +120,13 @@ class Program
     {
         if (OperatingSystem.IsWindows())
         {
-#pragma warning disable CA1416 // Validate platform compatibility
+#pragma warning disable CA1416
             if (cpuCounter == null) return 0f;
             cpuCounter.NextValue();
             Thread.Sleep(200);
             return cpuCounter.NextValue();
-#pragma warning restore CA1416 // Validate platform compatibility
+#pragma warning restore CA1416
         }
-        // non-Windows
-        // Sample /proc/stat twice, only on subsequent calls calculate delta
         try
         {
             var stat = File.ReadLines("/proc/stat").FirstOrDefault();
@@ -141,7 +138,7 @@ class Program
                 lastCpuTimes = vals;
                 lastCpuSample = DateTime.Now;
                 Thread.Sleep(200);
-                return GetCPUUsage(); // Recursively call to get delta
+                return GetCPUUsage();
             }
             else
             {
@@ -164,7 +161,7 @@ class Program
     {
         if (OperatingSystem.IsWindows())
         {
-#pragma warning disable CA1416 // Validate platform compatibility
+#pragma warning disable CA1416
             try
             {
                 var wmi = new System.Management.ManagementObjectSearcher("SELECT TotalVisibleMemorySize, FreePhysicalMemory FROM Win32_OperatingSystem");
@@ -176,7 +173,7 @@ class Program
                 }
             }
             catch { }
-#pragma warning restore CA1416 // Validate platform compatibility
+#pragma warning restore CA1416
             return 0f;
         }
         else
@@ -215,7 +212,7 @@ class Program
     {
         if (OperatingSystem.IsWindows())
         {
-#pragma warning disable CA1416 // Validate platform compatibility
+#pragma warning disable CA1416
             try
             {
                 if (gpuUsageCounter != null)
@@ -226,10 +223,9 @@ class Program
                 }
             }
             catch { }
-#pragma warning restore CA1416 // Validate platform compatibility
+#pragma warning restore CA1416
             return 0f;
         }
-        // Not supported on Linux/macOS in this simple version
         return 0f;
     }
 
@@ -237,9 +233,9 @@ class Program
     {
         if (OperatingSystem.IsWindows())
         {
-#pragma warning disable CA1416 // Validate platform compatibility
+#pragma warning disable CA1416
             try { return netSentCounter?.NextValue() / 1024 ?? 0f; } catch { return 0f; }
-#pragma warning restore CA1416 // Validate platform compatibility
+#pragma warning restore CA1416
         }
         else
         {
@@ -251,9 +247,9 @@ class Program
     {
         if (OperatingSystem.IsWindows())
         {
-#pragma warning disable CA1416 // Validate platform compatibility
+#pragma warning disable CA1416
             try { return netReceivedCounter?.NextValue() / 1024 ?? 0f; } catch { return 0f; }
-#pragma warning restore CA1416 // Validate platform compatibility
+#pragma warning restore CA1416
         }
         else
         {
@@ -309,15 +305,15 @@ class Program
         Console.WriteLine($"{color}╚══════════════════════════╝\x1b[0m");
     }
 
-    // --- Windows only helpers ---
+    //Windows only helpers
     static string? GetActiveNetworkInterfaceName()
     {
         if (OperatingSystem.IsWindows())
         {
-#pragma warning disable CA1416 // Validate platform compatibility
+#pragma warning disable CA1416
             var category = new PerformanceCounterCategory("Network Interface");
             var instances = category.GetInstanceNames();
-#pragma warning restore CA1416 // Validate platform compatibility
+#pragma warning restore CA1416
 
             var interfaces = NetworkInterface.GetAllNetworkInterfaces()
                 .Where(i => i.OperationalStatus == OperationalStatus.Up &&
@@ -345,10 +341,10 @@ class Program
     {
         if (OperatingSystem.IsWindows())
         {
-#pragma warning disable CA1416 // Validate platform compatibility
+#pragma warning disable CA1416
             var category = new PerformanceCounterCategory("GPU Engine");
             var instances = category.GetInstanceNames();
-#pragma warning restore CA1416 // Validate platform compatibility
+#pragma warning restore CA1416
             return instances.FirstOrDefault(inst => inst.ToLower().Contains("engtype_3d"));
         }
         return null;
