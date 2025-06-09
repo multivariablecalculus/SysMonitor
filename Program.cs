@@ -141,7 +141,6 @@ class Program
         {
             if (gpuUsageCounter != null)
             {
-                // First call to NextValue() returns 0, so call twice with small delay
                 gpuUsageCounter.NextValue();
                 Thread.Sleep(100);
                 return gpuUsageCounter.NextValue();
@@ -207,14 +206,12 @@ class Program
             .Where(i => i.OperationalStatus == OperationalStatus.Up &&
                         i.NetworkInterfaceType != NetworkInterfaceType.Loopback);
 
-        // Normalize a string for comparison (remove spaces, lowercase)
         string Normalize(string s) => new string(s.Where(c => !char.IsWhiteSpace(c)).ToArray()).ToLowerInvariant();
 
         foreach (var ni in interfaces)
         {
             string normalizedDescription = Normalize(ni.Description);
 
-            // Try to find matching instance by normalized name
             var match = instances.FirstOrDefault(inst =>
             {
                 string normalizedInstance = Normalize(inst);
@@ -226,7 +223,6 @@ class Program
         }
 
 
-        // fallback: first instance that doesn't contain "loopback"
         return instances.FirstOrDefault(i => !i.ToLowerInvariant().Contains("loopback"));
     }
     
@@ -235,7 +231,6 @@ class Program
         var category = new PerformanceCounterCategory("GPU Engine");
         var instances = category.GetInstanceNames();
 
-        // Usually instances named like "pid_0_engtype_3D" represent 3D GPU usage
         return instances.FirstOrDefault(inst => inst.ToLower().Contains("engtype_3d"));
     }
 

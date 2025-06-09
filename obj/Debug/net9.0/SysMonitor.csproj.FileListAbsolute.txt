@@ -24,3 +24,4 @@ C:\Users\dipra\SysMonitor\obj\Debug\net9.0\refint\SysMonitor.dll
 C:\Users\dipra\SysMonitor\obj\Debug\net9.0\SysMonitor.pdb
 C:\Users\dipra\SysMonitor\obj\Debug\net9.0\SysMonitor.genruntimeconfig.cache
 C:\Users\dipra\SysMonitor\obj\Debug\net9.0\ref\SysMonitor.dll
+C:\Users\dipra\SysMonitor\obj\Debug\net9.0\SysMonitor.sourcelink.json
