@@ -2,45 +2,61 @@
 using System.Diagnostics;
 using System.IO;
 using System.Linq;
-using System.Management;
 using System.Net.NetworkInformation;
-using System.Runtime.Versioning;
+using System.Runtime.InteropServices;
 using System.Threading;
 using System.Collections.Generic;
 
-[SupportedOSPlatform("windows")]
 class Program
 {
-    static PerformanceCounter cpuCounter = new("Processor", "% Processor Time", "_Total");
-    static PerformanceCounter? gpuUsageCounter;
-    static List<float> gpuHistory = new();
-    const int GPU_GRAPH_TOP_ROW = 20;
-    static PerformanceCounter? netSentCounter;
-    static PerformanceCounter? netReceivedCounter;
     static List<float> cpuHistory = new();
     static List<float> ramHistory = new();
+    static List<float> gpuHistory = new();
     const int GRAPH_WIDTH = 25;
     const int GRAPH_HEIGHT = 4;
-
     static DateTime startTime = DateTime.Now;
+
+    // --- Windows counters
+    static PerformanceCounter? cpuCounter;
+    static PerformanceCounter? gpuUsageCounter;
+    static PerformanceCounter? netSentCounter;
+    static PerformanceCounter? netReceivedCounter;
+    static string? winNetInterface;
+    static string? winGpuInstance;
+
+    // --- Linux/Unix state for CPU/network
+    static ulong[]? lastCpuTimes;
+    static DateTime lastCpuSample = DateTime.MinValue;
+    static long lastNetSent = -1, lastNetRecv = -1;
+    static DateTime lastNetSample = DateTime.MinValue;
 
     static void Main()
     {
-        string? netInterface = GetActiveNetworkInterfaceName();
-        if (netInterface != null)
-        {
-            netSentCounter = new("Network Interface", "Bytes Sent/sec", netInterface);
-            netReceivedCounter = new("Network Interface", "Bytes Received/sec", netInterface);
-        }
-
-        string? gpuInstance = GetGPU3DEngineInstance();
-        if (gpuInstance != null)
-        {
-            gpuUsageCounter = new PerformanceCounter("GPU Engine", "Utilization Percentage", gpuInstance);
-        }
-
         Console.Clear();
         Console.OutputEncoding = System.Text.Encoding.UTF8;
+
+        if (OperatingSystem.IsWindows())
+        {
+#pragma warning disable CA1416 // Validate platform compatibility
+            cpuCounter = new PerformanceCounter("Processor", "% Processor Time", "_Total");
+            winNetInterface = GetActiveNetworkInterfaceName();
+            if (winNetInterface != null)
+            {
+                netSentCounter = new PerformanceCounter("Network Interface", "Bytes Sent/sec", winNetInterface);
+                netReceivedCounter = new PerformanceCounter("Network Interface", "Bytes Received/sec", winNetInterface);
+            }
+            winGpuInstance = GetGPU3DEngineInstance();
+            if (winGpuInstance != null)
+            {
+                gpuUsageCounter = new PerformanceCounter("GPU Engine", "Utilization Percentage", winGpuInstance);
+            }
+#pragma warning restore CA1416 // Validate platform compatibility
+        }
+
+        // Prime CPU sample for non-Windows
+        if (!OperatingSystem.IsWindows())
+            GetCPUUsage();
+
         while (true)
         {
             Console.SetCursorPosition(0, 0);
@@ -51,10 +67,7 @@ class Program
 
     static void DisplaySystemStats()
     {
-        float cpuUsage = cpuCounter.NextValue();
-        Thread.Sleep(200);
-        cpuUsage = cpuCounter.NextValue();
-
+        float cpuUsage = GetCPUUsage();
         float ramUsage = GetRAMUsage();
         float diskUsage = GetDiskUsage();
         float gpuUsage = GetGPUUsage();
@@ -72,11 +85,11 @@ class Program
         string ramBar = GetBar(ramUsage);
         string diskBar = GetBar(diskUsage);
 
-        Console.WriteLine("\x1b[1;37m=== CLI SYSTEM MONITOR ===\x1b[0m\n");
+        Console.WriteLine("\x1b[1;37m=== CLI SYSTEM MONITOR (Cross-platform) ===\x1b[0m\n");
         Console.WriteLine($"\x1b[1;33mCPU Usage:        {cpuUsage,5:F1}% {cpuBar}\x1b[0m");
         Console.WriteLine($"\x1b[1;34mGPU Usage:        {gpuUsage,5:F1}%\x1b[0m");
         Console.WriteLine($"\x1b[1;36mRAM Usage:        {ramUsage,5:F1}% {ramBar}\x1b[0m");
-        Console.WriteLine($"\x1b[1;35mDisk C:\\ Usage:   {diskUsage,5:F1}% {diskBar}\x1b[0m");
+        Console.WriteLine($"\x1b[1;35mDisk Usage:       {diskUsage,5:F1}% {diskBar}\x1b[0m");
         Console.WriteLine($"\x1b[1;32mNetwork Sent:     {GetNetworkSent(),6:F1} KB/s\x1b[0m");
         Console.WriteLine($"\x1b[1;32mNetwork Received: {GetNetworkReceived(),6:F1} KB/s\x1b[0m");
 
@@ -86,7 +99,7 @@ class Program
         Console.SetCursorPosition(right, 3);
         Console.WriteLine($"\x1b[1;37m║  Host: {Environment.MachineName,-18}║\x1b[0m");
         Console.SetCursorPosition(right, 4);
-        Console.WriteLine($"\x1b[1;37m║  OS:   {Environment.OSVersion.VersionString,-16}║\x1b[0m");
+        Console.WriteLine($"\x1b[1;37m║  OS:   {RuntimeInformation.OSDescription,-16}║\x1b[0m");
         Console.SetCursorPosition(right, 5);
         Console.WriteLine($"\x1b[1;37m║  Uptime: {uptime,-16}║\x1b[0m");
         Console.SetCursorPosition(right, 6);
@@ -94,7 +107,7 @@ class Program
 
         DrawGraph(cpuHistory, "CPU Trend", 8, "\x1b[1;33m");
         DrawGraph(ramHistory, "RAM Trend", 14, "\x1b[1;36m");
-        DrawGraph(gpuHistory, "GPU Trend", GPU_GRAPH_TOP_ROW, "\x1b[1;34m");
+        DrawGraph(gpuHistory, "GPU Trend", 20, "\x1b[1;34m");
     }
 
     static string GetBar(float percent)
@@ -104,27 +117,90 @@ class Program
         return "[" + new string('█', filled) + new string('-', width - filled) + "]";
     }
 
-    static float GetRAMUsage()
+    static float GetCPUUsage()
     {
+        if (OperatingSystem.IsWindows())
+        {
+#pragma warning disable CA1416 // Validate platform compatibility
+            if (cpuCounter == null) return 0f;
+            cpuCounter.NextValue();
+            Thread.Sleep(200);
+            return cpuCounter.NextValue();
+#pragma warning restore CA1416 // Validate platform compatibility
+        }
+        // non-Windows
+        // Sample /proc/stat twice, only on subsequent calls calculate delta
         try
         {
-            using var searcher = new ManagementObjectSearcher("SELECT TotalVisibleMemorySize, FreePhysicalMemory FROM Win32_OperatingSystem");
-            foreach (ManagementObject obj in searcher.Get())
+            var stat = File.ReadLines("/proc/stat").FirstOrDefault();
+            if (stat == null) return 0f;
+            var vals = stat.Split(' ', StringSplitOptions.RemoveEmptyEntries).Skip(1).Select(ulong.Parse).ToArray();
+
+            if (lastCpuTimes == null)
             {
-                ulong total = (ulong)obj["TotalVisibleMemorySize"] * 1024;
-                ulong free = (ulong)obj["FreePhysicalMemory"] * 1024;
-                return 100.0f * (total - free) / total;
+                lastCpuTimes = vals;
+                lastCpuSample = DateTime.Now;
+                Thread.Sleep(200);
+                return GetCPUUsage(); // Recursively call to get delta
+            }
+            else
+            {
+                ulong idle1 = lastCpuTimes[3] + (lastCpuTimes.Length > 4 ? lastCpuTimes[4] : 0);
+                ulong idle2 = vals[3] + (vals.Length > 4 ? vals[4] : 0);
+                double total1 = lastCpuTimes.Select(x => (double)x).Sum();
+                double total2 = vals.Select(x => (double)x).Sum();
+                float idleDelta = (float)(idle2 - idle1);
+                float totalDelta = (float)(total2 - total1);
+                lastCpuTimes = vals;
+                lastCpuSample = DateTime.Now;
+                if (totalDelta <= 0) return 0f;
+                return 100f * (1.0f - idleDelta / totalDelta);
             }
         }
-        catch { }
-        return 0f;
+        catch { return 0f; }
+    }
+
+    static float GetRAMUsage()
+    {
+        if (OperatingSystem.IsWindows())
+        {
+#pragma warning disable CA1416 // Validate platform compatibility
+            try
+            {
+                var wmi = new System.Management.ManagementObjectSearcher("SELECT TotalVisibleMemorySize, FreePhysicalMemory FROM Win32_OperatingSystem");
+                foreach (System.Management.ManagementObject obj in wmi.Get())
+                {
+                    ulong total = (ulong)obj["TotalVisibleMemorySize"] * 1024;
+                    ulong free = (ulong)obj["FreePhysicalMemory"] * 1024;
+                    return 100.0f * (total - free) / total;
+                }
+            }
+            catch { }
+#pragma warning restore CA1416 // Validate platform compatibility
+            return 0f;
+        }
+        else
+        {
+            try
+            {
+                var lines = File.ReadAllLines("/proc/meminfo");
+                ulong total = ulong.Parse(lines.First(l => l.StartsWith("MemTotal")).Split(' ', StringSplitOptions.RemoveEmptyEntries)[1]);
+                ulong available = ulong.Parse(lines.First(l => l.StartsWith("MemAvailable")).Split(' ', StringSplitOptions.RemoveEmptyEntries)[1]);
+                return 100.0f * (total - available) / total;
+            }
+            catch { return 0f; }
+        }
     }
 
     static float GetDiskUsage()
     {
         try
         {
-            var drive = DriveInfo.GetDrives().FirstOrDefault(d => d.IsReady && d.Name == @"C:\");
+            DriveInfo? drive = null;
+            if (OperatingSystem.IsWindows())
+                drive = DriveInfo.GetDrives().FirstOrDefault(d => d.IsReady && d.Name == @"C:\");
+            else
+                drive = DriveInfo.GetDrives().FirstOrDefault(d => d.IsReady && d.Name == "/");
             if (drive != null)
             {
                 double used = drive.TotalSize - drive.TotalFreeSpace;
@@ -137,46 +213,82 @@ class Program
 
     static float GetGPUUsage()
     {
-        try
+        if (OperatingSystem.IsWindows())
         {
-            if (gpuUsageCounter != null)
+#pragma warning disable CA1416 // Validate platform compatibility
+            try
             {
-                gpuUsageCounter.NextValue();
-                Thread.Sleep(100);
-                return gpuUsageCounter.NextValue();
+                if (gpuUsageCounter != null)
+                {
+                    gpuUsageCounter.NextValue();
+                    Thread.Sleep(100);
+                    return gpuUsageCounter.NextValue();
+                }
             }
+            catch { }
+#pragma warning restore CA1416 // Validate platform compatibility
+            return 0f;
         }
-        catch { }
+        // Not supported on Linux/macOS in this simple version
         return 0f;
     }
 
-    static float GetNetworkSent() => netSentCounter?.NextValue() / 1024 ?? 0f;
-    static float GetNetworkReceived() => netReceivedCounter?.NextValue() / 1024 ?? 0f;
-
-    static string GetCPUTemperature()
+    static float GetNetworkSent()
     {
-        try
+        if (OperatingSystem.IsWindows())
         {
-            using ManagementObjectSearcher searcher = new(@"root\WMI", "SELECT CurrentTemperature FROM MSAcpi_ThermalZoneTemperature");
-            foreach (ManagementObject obj in searcher.Get())
-            {
-                if (obj["CurrentTemperature"] != null)
-                {
-                    double kelvin = Convert.ToDouble(obj["CurrentTemperature"]);
-                    double celsius = (kelvin / 10) - 273.15;
-                    return celsius.ToString("F1");
-                }
-            }
+#pragma warning disable CA1416 // Validate platform compatibility
+            try { return netSentCounter?.NextValue() / 1024 ?? 0f; } catch { return 0f; }
+#pragma warning restore CA1416 // Validate platform compatibility
         }
-        catch { }
+        else
+        {
+            return GetNetDelta("tx_bytes") / 1024f;
+        }
+    }
 
-        return "N/A";
+    static float GetNetworkReceived()
+    {
+        if (OperatingSystem.IsWindows())
+        {
+#pragma warning disable CA1416 // Validate platform compatibility
+            try { return netReceivedCounter?.NextValue() / 1024 ?? 0f; } catch { return 0f; }
+#pragma warning restore CA1416 // Validate platform compatibility
+        }
+        else
+        {
+            return GetNetDelta("rx_bytes") / 1024f;
+        }
+    }
+
+    static float GetNetDelta(string field)
+    {
+        string iface = NetworkInterface.GetAllNetworkInterfaces()
+            .FirstOrDefault(i => i.OperationalStatus == OperationalStatus.Up && i.NetworkInterfaceType != NetworkInterfaceType.Loopback)
+            ?.Name ?? "eth0";
+        string path = $"/sys/class/net/{iface}/statistics/{field}";
+        long curr = 0;
+        try { curr = long.Parse(File.ReadAllText(path)); } catch { }
+        float rate = 0f;
+        DateTime now = DateTime.Now;
+        if (lastNetSample != DateTime.MinValue)
+        {
+            double dt = (now - lastNetSample).TotalSeconds;
+            if (field == "tx_bytes" && lastNetSent >= 0)
+                rate = (curr - lastNetSent) / (float)Math.Max(dt, 1.0);
+            else if (field == "rx_bytes" && lastNetRecv >= 0)
+                rate = (curr - lastNetRecv) / (float)Math.Max(dt, 1.0);
+        }
+        if (field == "tx_bytes") lastNetSent = curr;
+        else if (field == "rx_bytes") lastNetRecv = curr;
+        lastNetSample = now;
+        return rate;
     }
 
     static void DrawGraph(List<float> history, string title, int topRow, string color)
     {
         int right = 45;
-        float maxVal = history.Max() > 0 ? history.Max() : 1f;
+        float maxVal = history.Count > 0 && history.Max() > 0 ? history.Max() : 1f;
 
         Console.SetCursorPosition(right, topRow);
         Console.WriteLine($"{color}╔═══════ {title} ════════╗\x1b[0m");
@@ -197,42 +309,48 @@ class Program
         Console.WriteLine($"{color}╚══════════════════════════╝\x1b[0m");
     }
 
+    // --- Windows only helpers ---
     static string? GetActiveNetworkInterfaceName()
     {
-        var category = new PerformanceCounterCategory("Network Interface");
-        var instances = category.GetInstanceNames();
-
-        var interfaces = NetworkInterface.GetAllNetworkInterfaces()
-            .Where(i => i.OperationalStatus == OperationalStatus.Up &&
-                        i.NetworkInterfaceType != NetworkInterfaceType.Loopback);
-
-        string Normalize(string s) => new string(s.Where(c => !char.IsWhiteSpace(c)).ToArray()).ToLowerInvariant();
-
-        foreach (var ni in interfaces)
+        if (OperatingSystem.IsWindows())
         {
-            string normalizedDescription = Normalize(ni.Description);
+#pragma warning disable CA1416 // Validate platform compatibility
+            var category = new PerformanceCounterCategory("Network Interface");
+            var instances = category.GetInstanceNames();
+#pragma warning restore CA1416 // Validate platform compatibility
 
-            var match = instances.FirstOrDefault(inst =>
+            var interfaces = NetworkInterface.GetAllNetworkInterfaces()
+                .Where(i => i.OperationalStatus == OperationalStatus.Up &&
+                            i.NetworkInterfaceType != NetworkInterfaceType.Loopback);
+
+            string Normalize(string s) => new string(s.Where(c => !char.IsWhiteSpace(c)).ToArray()).ToLowerInvariant();
+
+            foreach (var ni in interfaces)
             {
-                string normalizedInstance = Normalize(inst);
-                return normalizedInstance.Contains(normalizedDescription) || normalizedDescription.Contains(normalizedInstance);
-            });
-
-            if (match != null)
-                return match;
+                string normalizedDescription = Normalize(ni.Description);
+                var match = instances.FirstOrDefault(inst =>
+                {
+                    string normalizedInstance = Normalize(inst);
+                    return normalizedInstance.Contains(normalizedDescription) || normalizedDescription.Contains(normalizedInstance);
+                });
+                if (match != null)
+                    return match;
+            }
+            return instances.FirstOrDefault(i => !i.ToLowerInvariant().Contains("loopback"));
         }
-
-
-        return instances.FirstOrDefault(i => !i.ToLowerInvariant().Contains("loopback"));
+        return null;
     }
-    
+
     static string? GetGPU3DEngineInstance()
     {
-        var category = new PerformanceCounterCategory("GPU Engine");
-        var instances = category.GetInstanceNames();
-
-        return instances.FirstOrDefault(inst => inst.ToLower().Contains("engtype_3d"));
+        if (OperatingSystem.IsWindows())
+        {
+#pragma warning disable CA1416 // Validate platform compatibility
+            var category = new PerformanceCounterCategory("GPU Engine");
+            var instances = category.GetInstanceNames();
+#pragma warning restore CA1416 // Validate platform compatibility
+            return instances.FirstOrDefault(inst => inst.ToLower().Contains("engtype_3d"));
+        }
+        return null;
     }
-
-
 }
